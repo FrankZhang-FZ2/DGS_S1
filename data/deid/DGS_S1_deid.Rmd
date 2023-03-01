@@ -1,0 +1,45 @@
+---
+title: "De-identify data script"
+author: "Qilin_Zhang"
+date: "2022-11-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse) #data wrangling
+```
+
+```{r setup, include=FALSE}
+
+data_uncleaned <- rio::import(file = 'Do-gooders+scale_S1_February+17,+2023_00.11.csv', sep = ",") #import data (use the for analyses file)
+
+checklist <- rio::import(file = 'Checklist_for_deid.xlsx', sep = ",") #import checklist (make sure there is no typo and variables are all seperated by ,)
+
+deid_list <- checklist %>% 
+  filter (Present_variables!= "NA") %>%
+  pull(Present_variables)
+
+x <- strsplit(deid_list, ",")
+
+checklist <- character()
+for (i in 1:length(x)){
+  
+  for (j in 1:length(x[[i]])){
+    
+    checklist <- c(checklist,
+              sub(" ", "", x[[i]][j]))
+  }
+}
+
+data_cleaned <- data_uncleaned[,!(names(data_uncleaned) %in% checklist)]
+
+rm(checklist)
+rm(deid_list)
+
+write.csv(data_cleaned,file = "DGS_S1_Deidentified For Analyses.csv",row.names = FALSE)# remember to change the name after running the code
+
+
+
+
+```
