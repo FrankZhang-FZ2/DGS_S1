@@ -1,0 +1,219 @@
+---
+title: "test_DGS"
+author: "Qilin Zhang"
+date: "2023-03-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r pac, message = FALSE}
+library(summarytools)
+library(tidyverse) #data wrangling
+library(codebook) #codebook generation
+library(future) #reliability
+library(ufs) #reliability
+library(GGally) #reliability
+library(GPArotation) #reliability
+library(rio) #reading in different file types
+library(labelled) #labeling data
+library(psych)
+library(corrplot)
+library("psych")
+library(epmr)
+library(mirt)
+library(reshape2)
+library(eRm)
+library(mice)
+
+#if need to download the epmr package
+#if (!require("devtools")) install.packages("devtools")   
+#devtools::install_github("talbano/epmr")
+```
+
+### cleaning
+
+
+```{r cleaning code, include = FALSE}
+
+## use other read functions as appropriate for file type
+
+dict <- rio::import(file = "data/DGS_S1_dictionary.xlsx") #dictionary
+
+data <- read.csv(file = 'data/DGS_S1_Deidentified For Analyses.csv', sep = ",") #data
+
+data <- data[-c(1:2),-c(1:7)]
+
+data <- data[grep("DGS_1",colnames(data)):grep("DGS_75",colnames(data))]
+data <- data[,-c(grep("DGS_31",colnames(data)),grep("DGS_53",colnames(data)))]
+
+## Variable types 
+names <- dict %>% 
+  filter(type == "character") %>% 
+  pull(variable)
+data[,names] <- 
+  lapply(data[,names], as.character)
+
+names <- dict %>% 
+  filter(type == "factor") %>% 
+  pull(variable)
+data[,names] <- 
+  lapply(data[,names], as.numeric) #factor variables are coded as numeric for codebook purposes
+
+names <- dict %>% 
+  filter(type == "numeric") %>% 
+  pull(variable)
+data[,names] <- 
+  lapply(data[,names], as.numeric)
+
+rm(names)
+
+##data completion check and imputation
+
+#remove failed attention check -55 participants from this process
+data <- data %>%
+  filter(DGS_31 == 4) %>%
+  filter((DGS_53 == 2))
+
+
+#function for checking percentage of missing data (unit=%)
+percent_missing <- function(x){
+  sum(is.na((x))/length(x)*100)
+}
+missing_R <- apply(data,1,percent_missing)
+table(missing_R)
+
+#subset based on filtering criteria
+replace_rows <- subset(data, missing_R<=10)
+no_rows <- subset(data, missing_R>10)
+
+missing_C <- apply(replace_rows,2,percent_missing)
+table(missing_C) #no concern here
+
+replace_data <- replace_rows[,1:85]
+leftout <- replace_rows[,86:91]
+
+#check where the NAs are if needed
+rindex <- rep(FALSE, nrow(replace_data))
+for (i in 1:nrow(replace_data)){
+  for (j in 1:grep("DGS_75",colnames(replace_data))){
+    if( is.na(replace_data[i,j])){
+      rindex[i] = TRUE
+      j = ncol(replace_data)+1
+    }
+  }
+}
+data_error <- replace_data[rindex,]
+
+rm(data_error)
+#imputation
+temp <- mice(replace_data)
+fixed_data <- complete(temp)  #imputation using mice package
+data <- cbind(fixed_data,leftout) #no additional participants were removed
+
+rm(fixed_data,leftout,no_rows,replace_data,replace_rows)
+
+##recode
+
+#DGS recode
+likert <- dict %>% 
+  filter (value_label == "1 = Strongly disagree, 2 = Disagree, 3 = Somewhat disagree, 4 = Neither agree nor disagree, 5 = Somewhat agree, 6 = Agree, 7 = Strongly agree") %>%
+  pull(variable)
+add_likert <- function(x) {
+  val_labels(x) <- c("Strongly disagree"= 1, "Disagree" = 2, "Somewhat disagree" = 3, "Neither agree nor disagree" = 4, "Somewhat agree" = 5, "Agree" = 6, "Strongly agree" = 7) 
+  x
+}
+data <- data %>%
+  mutate_at(likert, 
+            add_likert)  
+
+rm(likert, add_likert)
+
+## Reverse-scoring 
+reversed_items <- dict %>%  #make a list of reversed items
+ filter (keying == -1) %>% 
+ pull(variable)
+
+data <- data %>%  #reverse values in data
+  mutate_at(reversed_items,
+          reverse_labelled_values)
+
+rm(reversed_items)
+
+##scale construction
+
+## Variable labels
+var_label(data) <- dict %>% 
+  select(variable, label) %>% 
+  dict_to_list()
+
+rm(extra)
+
+###7 factors model
+M7_1 <- dict %>% 
+  filter ("7_factors" == "1") %>% 
+  pull(variable)
+M7_2 <- dict %>% 
+  filter ("7_factors" == "2") %>% 
+  pull(variable)
+M7_3 <- dict %>% 
+  filter ("7_factors" == "3") %>% 
+  pull(variable)
+M7_4 <- dict %>% 
+  filter ("7_factors" == "4") %>% 
+  pull(variable)
+M7_5 <- dict %>% 
+  filter ("7_factors" == "5") %>% 
+  pull(variable)
+M7_6 <- dict %>% 
+  filter ("7_factors" == "6") %>% 
+  pull(variable)
+M7_7 <- dict %>% 
+  filter ("7_factors" == "7") %>% 
+  pull(variable)
+###7 factors model
+
+data$M7_1 <- data %>% 
+  select(all_of(M7_1)) %>% 
+  aggregate_and_document_scale()
+
+data$M7_2 <- data %>% 
+  select(all_of(M7_2)) %>% 
+  aggregate_and_document_scale()
+
+data$M7_3 <- data %>% 
+  select(all_of(M7_3)) %>% 
+  aggregate_and_document_scale()
+
+data$M7_4 <- data %>% 
+  select(all_of(M7_4)) %>% 
+  aggregate_and_document_scale()
+
+data$M7_5 <- data %>% 
+  select(all_of(M7_5)) %>% 
+  aggregate_and_document_scale()
+
+data$M7_6 <- data %>% 
+  select(all_of(M7_6)) %>% 
+  aggregate_and_document_scale()
+
+data$M7_7 <- data %>% 
+  select(all_of(M7_7)) %>% 
+  aggregate_and_document_scale()
+```
+
+
+###Code Book
+
+```{r codebook}
+#codebook_data <- data %>% #select only the variables to display for codebook
+#select(-ID)
+
+metadata(data)$name <- "A short name for the data"
+metadata(data)$description <- "Longer description of the dataset"
+metadata(data)$temporalCoverage <- "Tdataspan of data collection" 
+
+codebook(data, metadata_json = F, metadata_table = F) #generate codebook, excluding some messy meta-data
+```
