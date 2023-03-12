@@ -391,7 +391,8 @@ DGS_fit_7C <- DGS %>%
            DGS_1,DGS_21,DGS_44,DGS_65,
            DGS_20,DGS_28,DGS_35,DGS_48,DGS_68,
            DGS_6,DGS_38,DGS_39,DGS_45,DGS_67,DGS_70,DGS_71,
-           DGS_2,DGS_11,DGS_48,DGS_66))
+           DGS_2,DGS_11,DGS_48,DGS_13))
+
 
 EFA_fit_7C <- fa(DGS_fit_7C,
              nfactors = 7,
@@ -409,6 +410,38 @@ EFA_fit_7C$TLI  # tucker lewis index
       (EFA_fit_7C$null.chisq-EFA_fit_7C$null.dof))  #CFI
 ```
 
+```{r 7model_trim}
+#7 factors model triming
+DGS_fit_7C <- DGS %>%
+  select(c(DGS_4,DGS_12,DGS_15,DGS_17,DGS_19,DGS_22,DGS_32,DGS_33,DGS_49,DGS_56,DGS_60,DGS_75,
+           DGS_10,DGS_26,DGS_41,DGS_54,DGS_57,DGS_69,DGS_72,
+           DGS_9,DGS_27,DGS_29,DGS_46,DGS_51,DGS_52,
+           DGS_1,DGS_21,DGS_44,DGS_65,
+           DGS_20,DGS_28,DGS_35,DGS_68,
+           DGS_6,DGS_39,DGS_45,DGS_67,DGS_70,
+           DGS_2,DGS_11,DGS_48,DGS_13,DGS_73))
+#trim 38,71because of the negative loading on factor 1
+#trim 66 because of the low relevancy
+#trim 44 because of the repetitiveness in description
+
+EFA_fit_7C <- fa(DGS_fit_7C,
+             nfactors = 7,
+             rotate = "oblimin",
+             fm="ml")
+EFA_fit_7C
+print(EFA_fit_7C$loadings, cutoff = 0.3)
+print(EFA_fit_7C$loadings)
+
+##fit indices
+EFA_fit_7C$rms  # Root mean square of the residuals (lower the better)
+EFA_fit_7C$RMSEA # root mean squared error of approximation (lower the better)
+EFA_fit_7C$TLI  # tucker lewis index
+1- ((EFA_fit_7C$STATISTIC-EFA_fit_7C$dof)/
+      (EFA_fit_7C$null.chisq-EFA_fit_7C$null.dof))  #CFI
+```
+
+
+
 ###lower structure exploration
 
 ```{r lower_structure_F1}
@@ -416,6 +449,10 @@ EFA_fit_7C$TLI  # tucker lewis index
 #select items for this factor
 DGS_7M_f1 <- DGS%>%
   select(c(DGS_4,DGS_7,DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_22,DGS_25,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_37,DGS_49,DGS_55,DGS_56,DGS_57,DGS_58,DGS_59,DGS_60,DGS_61,DGS_63,DGS_64,DGS_74,DGS_75))
+
+#run for concise model
+DGS_7M_f1 <- DGS%>%
+  select(c(DGS_4,DGS_12,DGS_15,DGS_17,DGS_19,DGS_22,DGS_32,DGS_33,DGS_49,DGS_56,DGS_60,DGS_75))
 
 cor.plot(DGS_7M_f1)
 
@@ -433,7 +470,7 @@ fa.parallel(DGS_7M_f1,
             fa="fa")
 #EFA
 EFA_7M_f1 <- fa(DGS_7M_f1,
-             nfactors = 4,
+             nfactors = 3,
              rotate = "oblimin",
              fm="ml")
 EFA_7M_f1
@@ -452,6 +489,9 @@ fa.diagram(EFA_7M_f1)
 #select items for this factor
 DGS_7M_f2 <- DGS%>%
   select(c(DGS_3,DGS_5,DGS_8,DGS_10,DGS_15,DGS_26,DGS_33,DGS_41,DGS_44,DGS_45,DGS_47,DGS_54,DGS_57,DGS_58,DGS_69,DGS_72,DGS_74))
+#run for concise model
+DGS_7M_f2 <- DGS%>%
+  select(c(DGS_10,DGS_26,DGS_41,DGS_54,DGS_57,DGS_69,DGS_72))
 
 cor.plot(DGS_7M_f2)
 
@@ -469,7 +509,7 @@ fa.parallel(DGS_7M_f2,
             fa="fa")
 #EFA
 EFA_7M_f2 <- fa(DGS_7M_f2,
-             nfactors = 2,
+             nfactors = 1,
              rotate = "oblimin",
              fm="ml")
 EFA_7M_f2
@@ -490,6 +530,10 @@ fa.diagram(EFA_7M_f2)
 #select items for this factor
 DGS_7M_f3 <- DGS%>%
   select(c(DGS_9,DGS_27,DGS_29,DGS_46,DGS_51,DGS_52))
+
+#run for concise model
+DGS_7M_f3 <- DGS%>%
+   select(c(DGS_9,DGS_27,DGS_29,DGS_46,DGS_51,DGS_52))
 
 cor.plot(DGS_7M_f3)
 
@@ -519,7 +563,7 @@ EFA_7M_f3 <- fa(DGS_7M_f3,
              fm="ml")
 EFA_7M_f3
 print(EFA_7M_f3$loadings, cutoff = 0.3) 
-#recommend 1 factor because 2 factors basically seperate negative and positive code items.
+#recommend 1 factor because 2 factors basically separate negative and positive code items.
 
 #visualization
 fa.diagram(EFA_7M_f3)
@@ -531,8 +575,6 @@ fa.diagram(EFA_7M_f3)
 #select items for this factor
 DGS_7M_f4 <- DGS%>%
   select(c(DGS_1,DGS_21,DGS_44,DGS_63,DGS_65)) #remove 69 due to low loading in the 7 factor model and low conceptual relevancy.
-
-cor.plot(DGS_7M_f4)
 
 ##Kaiser Criterion
 ev<- eigen(cor(DGS_7M_f4))
@@ -553,14 +595,37 @@ EFA_7M_f4 <- fa(DGS_7M_f4,
              fm="ml")
 EFA_7M_f4
 print(EFA_7M_f4$loadings, cutoff = 0.3) 
+#recommend 1 factor becuase these basically separate the negative and positive coded items. 
 
+#visualization
+fa.diagram(EFA_7M_f4)
+
+#run for concise model
+DGS_7M_f4 <- DGS%>%
+   select(c(DGS_1,DGS_21,DGS_44,DGS_65))#recommend 1 factor for the concise version
+
+cor.plot(DGS_7M_f4)
+
+##Kaiser Criterion
+ev<- eigen(cor(DGS_7M_f4))
+ev$values
+sum(ev$values > 1)
+sum(ev$values > .7)
+
+#scree plot and parallel analysis
+scree(DGS_7M_f4, pc=FALSE)
+
+fa.parallel(DGS_7M_f4,
+            fm="ml",
+            fa="fa")
+#EFA
 EFA_7M_f4 <- fa(DGS_7M_f4,
              nfactors = 1,
              rotate = "oblimin",
              fm="ml")
 EFA_7M_f4
 print(EFA_7M_f4$loadings, cutoff = 0.3) 
-#recommend 1 factor because 2 factors basically seperate negative and positive code items.
+#recommend 1 factor 
 
 #visualization
 fa.diagram(EFA_7M_f4)
@@ -572,6 +637,10 @@ fa.diagram(EFA_7M_f4)
 #select items for this factor
 DGS_7M_f5 <- DGS%>%
   select(c(DGS_20,DGS_24,DGS_28,DGS_35,DGS_48,DGS_64,DGS_68)) #remove 47 due to low loading in the 7 factor model and low conceptual relevancy.
+
+#run for concise model
+DGS_7M_f5 <- DGS%>%
+   select(c(DGS_20,DGS_28,DGS_35,DGS_48,DGS_68)) # recommend one factor for the concise version
 
 cor.plot(DGS_7M_f5)
 
@@ -607,6 +676,10 @@ fa.diagram(EFA_7M_f5)
 DGS_7M_f6 <- DGS%>%
   select(c(DGS_6,DGS_18,DGS_38,DGS_39,DGS_45,DGS_55,DGS_67,DGS_70,DGS_71)) #remove 62 due to low loading in the 7 factor model and low conceptual relevancy.
 
+#run for concise model
+DGS_7M_f6 <- DGS%>%
+   select(c(DGS_6,DGS_38,DGS_39,DGS_45,DGS_67,DGS_70,DGS_71)) # need further inspection
+
 cor.plot(DGS_7M_f6)
 
 ##Kaiser Criterion
@@ -629,7 +702,18 @@ EFA_7M_f6 <- fa(DGS_7M_f6,
 EFA_7M_f6 
 print(EFA_7M_f6 $loadings, cutoff = 0.3) 
 
+EFA_7M_f6 <- fa(DGS_7M_f6,
+             nfactors = 2,
+             rotate = "oblimin",
+             fm="ml")
+EFA_7M_f6 
+print(EFA_7M_f6 $loadings, cutoff = 0.3)
 
+##need to check 38 and 71 and see if they fit the model. IRT may be helpful here.
+DGS%>%
+  ggplot()+
+  geom_bar(aes(x=DGS_38, alpha = 0.1))+
+  geom_bar(aes(x=DGS_67))
 #visualization
 fa.diagram(EFA_7M_f6)
             
@@ -640,6 +724,10 @@ fa.diagram(EFA_7M_f6)
 #select items for this factor
 DGS_7M_f7 <- DGS%>%
   select(c(DGS_2,DGS_5,DGS_11,DGS_13,DGS_48,DGS_66,DGS_73)) #remove 47 due to low loading in the 7 factor model and low conceptual relevancy.
+
+#run for concise model
+DGS_7M_f7 <- DGS%>%
+   select(c(DGS_2,DGS_11,DGS_13,DGS_48,DGS_73)) # recommend one factor for the concise version
 
 cor.plot(DGS_7M_f7)
 
@@ -657,13 +745,16 @@ fa.parallel(DGS_7M_f7,
             fa="fa")
 #EFA
 EFA_7M_f7 <- fa(DGS_7M_f7,
-             nfactors = 2,
+             nfactors = 1,
              rotate = "oblimin",
              fm="ml")
 EFA_7M_f7
 print(EFA_7M_f7$loadings, cutoff = 0.3) 
 
-
+DGS%>%
+  ggplot()+
+  geom_bar(aes(x=DGS_2, alpha = 0.1))+
+  geom_bar(aes(x=DGS_11))
 #visualization
 fa.diagram(EFA_7M_f7)
             
@@ -951,6 +1042,77 @@ abline(v=v_threshpar,
 
 ##create the item information curve
 
+```
+
+
+```{r scale_scoring}
+
+DGS_7C_1 <- DGS %>%
+  select(c(DGS_4,DGS_12,DGS_15,DGS_17,DGS_19,DGS_22,DGS_32,DGS_33,DGS_49,DGS_56,DGS_60,DGS_75))
+data$DGS_7C_1 <- rowSums(DGS_7C_1)/ncol(DGS_7C_1)
+data %>%
+  ggplot(aes(x= DGS_7C_1))+
+  geom_density()
+
+DGS_7C_2 <- DGS %>%
+  select(c(DGS_10,DGS_26,DGS_41,DGS_54,DGS_57,DGS_69,DGS_72))
+data$DGS_7C_2 <- rowSums(DGS_7C_2)/ncol(DGS_7C_2)
+data %>%
+  ggplot(aes(x= DGS_7C_2))+
+  geom_density()
+
+DGS_7C_3 <- DGS %>%
+  select(c(DGS_9,DGS_27,DGS_29,DGS_46,DGS_51,DGS_52))
+data$DGS_7C_3 <- rowSums(DGS_7C_3)/ncol(DGS_7C_3)
+data %>%
+  ggplot(aes(x= DGS_7C_3))+
+  geom_density()
+
+
+DGS_7C_4 <- DGS %>%
+  select(c(DGS_1,DGS_21,DGS_44,DGS_65))
+data$DGS_7C_4 <- rowSums(DGS_7C_4)/ncol(DGS_7C_4)
+
+data %>%
+  ggplot(aes(x= DGS_7C_4))+
+  geom_density()
+
+
+DGS_7C_5 <- DGS %>%
+  select(c(DGS_20,DGS_28,DGS_35,DGS_48,DGS_68))
+data$DGS_7C_5<- rowSums(DGS_7C_5)/ncol(DGS_7C_5)
+
+data %>%
+  ggplot(aes(x= DGS_7C_5))+
+  geom_density()
+
+
+DGS_7C_6 <- DGS %>%
+  select(c(DGS_6,DGS_38,DGS_39,DGS_45,DGS_67,DGS_70,DGS_71))
+data$DGS_7C_6 <- rowSums(DGS_7C_6)/ncol(DGS_7C_6)
+
+data %>%
+  ggplot(aes(x= DGS_7C_6))+
+  geom_density()
+
+
+DGS_7C_7 <- DGS %>%
+  select(c(DGS_2,DGS_11,DGS_48,DGS_13))
+data$DGS_7C_7 <- rowSums(DGS_7C_7)/ncol(DGS_7C_7)
+
+data %>%
+  ggplot(aes(x= DGS_7C_7))+
+  geom_density()
+
+
+```
+```{r analysis}
+psych::omega(HEXACO_C, nfactors = 2)
+
+DGS_HEXACO <- data %>%
+  select(c(HEXACO_C,starts_with("DGS_7C_")))
+
+cor.plot(DGS_HEXACO)
 ```
 
 ###Code Book
