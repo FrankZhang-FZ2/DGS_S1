@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ###load packages
 
-```{r pac, message = FALSE}
+```{r pac, message = FALSE, include=FALSE}
 library(summarytools)
 library(tidyverse) #data wrangling
 library(codebook) #codebook generation
@@ -91,7 +91,7 @@ replace_rows <- subset(data, missing_R<=0)
 data <- replace_rows
 ```
 
-```{r imputation}
+```{r imputation, include= FALSE}
 if(FALSE){
 #subset based on filtering criteria
 replace_rows <- subset(data, missing_R<=10)
@@ -125,7 +125,7 @@ rm(fixed_data,leftout,no_rows,replace_data,replace_rows)
 }
 ```
 
-```{r recode}
+```{r recode, include=FALSE}
 ##recode
 
 #DGS recode
@@ -198,25 +198,25 @@ data$HEXACO_C <- data %>%
 
 ###7 factors model
 M7_1 <- dict %>% 
-  filter (factors_7 == 1) %>% 
+  filter (M7_concise == 1) %>% 
   pull(variable)
 M7_2 <- dict %>% 
-  filter (factors_7 == 2) %>% 
+  filter (M7_concise == 2) %>% 
   pull(variable)
 M7_3 <- dict %>% 
-  filter (factors_7 == 3) %>% 
+  filter (M7_concise == 3) %>% 
   pull(variable)
 M7_4 <- dict %>% 
-  filter (factors_7 == 4) %>% 
+  filter (M7_concise == 4) %>% 
   pull(variable)
 M7_5 <- dict %>% 
-  filter (factors_7 == 5) %>% 
+  filter (M7_concise == 5) %>% 
   pull(variable)
 M7_6 <- dict %>% 
-  filter (factors_7 == 6) %>% 
+  filter (M7_concise == 6) %>% 
   pull(variable)
 M7_7 <- dict %>% 
-  filter (factors_7 == 7) %>% 
+  filter (M7_concise == 7) %>% 
   pull(variable)
 
 ###7 factors model
@@ -248,7 +248,9 @@ data$M7_6 <- data %>%
 data$M7_7 <- data %>% 
   select(all_of(M7_7)) %>% 
   aggregate_and_document_scale()
+```
 
+``` {R assumption}
 ## assumption check
 random_variable <- rchisq(nrow(data), 7)
 fake_model <- lm(random_variable ~ ., 
@@ -281,46 +283,6 @@ DGS <- DGS[,-c(grep("DGS_31",colnames(DGS)),grep("DGS_53",colnames(DGS)))]
 
 HEXACO_C <- data_cleaned[grep("HEXACO_C_1",colnames(data_cleaned)):grep("HEXACO_C_10",colnames(data_cleaned))]
 ```
-
-
-# for later use
-###Conscientiousness 
-Organization <- dict %>% 
-  filter (subscale == "Organization") %>% 
-  pull(variable)
-
-Diligence <- dict %>% 
-  filter (subscale == "Diligence") %>% 
-  pull(variable)
-
-Perfectionism <- dict %>% 
-  filter (subscale == "Perfectionism") %>% 
-  pull(variable)
-
-Prudence <- dict %>% 
-  filter (subscale == "Prudence") %>% 
-  pull(variable)
-
-###Conscientiousness
-
-data$Organization <- data %>% 
-  select(all_of(Organization)) %>% 
-  aggregate_and_document_scale()
-
-data$Diligence  <- data %>% 
-  select(all_of(Diligence)) %>% 
-  aggregate_and_document_scale()
-
-data$Perfectionism <- data %>% 
-  select(all_of(Perfectionism)) %>% 
-  aggregate_and_document_scale()
-
-data$Prudence <- data %>% 
- select(all_of(Prudence)) %>% 
-  aggregate_and_document_scale()
-
-
-
 
 ###EFA
 
@@ -359,7 +321,7 @@ print(EFA_fit_9$loadings)#model Abandoned because of conceptual reasons (see wri
 
 
 ```{r EFA_7model}
-#6 factor (trim items with loading lower than 0.3)
+#7 factor (trim items with loading lower than 0.3)
 
 DGS_fit_7 <- DGS %>%
   select(!c(DGS_16,DGS_40,DGS_43,DGS_50,DGS_42,DGS_23,DGS_14))
@@ -382,7 +344,7 @@ EFA_fit_7$TLI  # tucker lewis index
 ```
 
 
-```{r EFA_7model}
+```{r EFA_7model_concise}
 #7 factors concise model
 DGS_fit_7C <- DGS %>%
   select(c(DGS_4,DGS_12,DGS_15,DGS_17,DGS_19,DGS_22,DGS_32,DGS_33,DGS_49,DGS_56,DGS_60,DGS_75,
@@ -391,7 +353,7 @@ DGS_fit_7C <- DGS %>%
            DGS_1,DGS_21,DGS_44,DGS_65,
            DGS_20,DGS_28,DGS_35,DGS_48,DGS_68,
            DGS_6,DGS_38,DGS_39,DGS_45,DGS_67,DGS_70,DGS_71,
-           DGS_2,DGS_11,DGS_48,DGS_13))
+           DGS_2,DGS_11))
 
 
 EFA_fit_7C <- fa(DGS_fit_7C,
@@ -408,9 +370,11 @@ EFA_fit_7C$RMSEA # root mean squared error of approximation (lower the better)
 EFA_fit_7C$TLI  # tucker lewis index
 1- ((EFA_fit_7C$STATISTIC-EFA_fit_7C$dof)/
       (EFA_fit_7C$null.chisq-EFA_fit_7C$null.dof))  #CFI
+
+anova(EFA_fit_7,EFA_fit_7C)
 ```
 
-```{r 7model_trim}
+```#{r 7model_trim}
 #7 factors model triming
 DGS_fit_7C <- DGS %>%
   select(c(DGS_4,DGS_12,DGS_15,DGS_17,DGS_19,DGS_22,DGS_32,DGS_33,DGS_49,DGS_56,DGS_60,DGS_75,
@@ -438,9 +402,85 @@ EFA_fit_7C$RMSEA # root mean squared error of approximation (lower the better)
 EFA_fit_7C$TLI  # tucker lewis index
 1- ((EFA_fit_7C$STATISTIC-EFA_fit_7C$dof)/
       (EFA_fit_7C$null.chisq-EFA_fit_7C$null.dof))  #CFI
+
+```
+
+```{r 4_factors}
+DGS_fit_4 <- DGS %>%
+  select(!c(DGS_13,DGS_73))
+
+#try 4 factors model
+EFA_fit_4 <- fa(DGS_fit_4,
+             nfactors = 4,
+             rotate = "oblimin",
+             fm="ml")
+EFA_fit_4
+print(EFA_fit_4$loadings, cutoff = 0.45)
+print(EFA_fit_4$loadings)
+
+#fit indices
+EFA_fit_4$rms  # Root mean square of the residuals (lower the better)
+EFA_fit_4$RMSEA # root mean squared error of approximation (lower the better)
+EFA_fit_4$TLI  # tucker lewis index
+1- ((EFA_fit_4$STATISTIC-EFA_fit_4$dof)/
+      (EFA_fit_4$null.chisq-EFA_fit_4$null.dof))  #CFI
+
+##abandon because the second factor is just the list of reverse coded items (poor conceptual fits)
 ```
 
 
+```{r 6_factors}
+# try to trim out behavioral items and create 6 factors
+DGS_fit_6 <- DGS %>%
+  select(!c(DGS_13,DGS_73,DGS_16,DGS_40,DGS_42,DGS_43))
+
+EFA_fit_6 <- fa(DGS_fit_6,
+             nfactors = 6,
+             rotate = "oblimin",
+             fm="ml")
+EFA_fit_6
+print(EFA_fit_6$loadings, cutoff = 0.4)
+print(EFA_fit_6$loadings)
+
+DGS_beh <- data%>%
+  select(c(DGS_13,DGS_73))
+
+EFA_fit_6$rms  # Root mean square of the residuals (lower the better)
+EFA_fit_6$RMSEA # root mean squared error of approximation (lower the better)
+EFA_fit_6$TLI  # tucker lewis index
+1- ((EFA_fit_6$STATISTIC-EFA_fit_6$dof)/
+      (EFA_fit_6$null.chisq-EFA_fit_6$null.dof))  #CFI
+
+```
+
+
+```{r 6_factors_concise}
+# try to trim out behavioral items and create 6 factors
+DGS_fit_6C <- DGS %>%
+  select(c(
+    DGS_4,DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_22,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_37,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_74,
+    DGS_5,DGS_10,DGS_26,DGS_41,DGS_54,DGS_69,DGS_72,
+    DGS_9,DGS_20,DGS_27,DGS_29,DGS_46,DGS_52,
+    DGS_2,DGS_11,DGS_28,DGS_35,DGS_48,DGS_68,
+    DGS_1,DGS_21,DGS_44,DGS_65,
+    DGS_6,DGS_38,DGS_39,DGS_45,DGS_67,DGS_70,DGS_71
+  ))
+# 64 59 47(poor conceptual fit) 55(mixed conceptual fit) 23(poor conceptual fit)
+EFA_fit_6C <- fa(DGS_fit_6C,
+             nfactors = 6,
+             rotate = "oblimin",
+             fm="ml")
+EFA_fit_6C
+print(EFA_fit_6C$loadings, cutoff = 0.3)
+print(EFA_fit_6C$loadings)
+
+#fit
+EFA_fit_6C$rms  # Root mean square of the residuals (lower the better)
+EFA_fit_6C$RMSEA # root mean squared error of approximation (lower the better)
+EFA_fit_6C$TLI  # tucker lewis index
+1- ((EFA_fit_6C$STATISTIC-EFA_fit_6C$dof)/
+      (EFA_fit_6C$null.chisq-EFA_fit_6C$null.dof))  #CFI
+```
 
 ###lower structure exploration
 
@@ -727,7 +767,7 @@ DGS_7M_f7 <- DGS%>%
 
 #run for concise model
 DGS_7M_f7 <- DGS%>%
-   select(c(DGS_2,DGS_11,DGS_13,DGS_48,DGS_73)) # recommend one factor for the concise version
+   select(c(DGS_2,DGS_11,DGS_13,DGS_73)) # recommend one factor for the concise version
 
 cor.plot(DGS_7M_f7)
 
@@ -751,10 +791,6 @@ EFA_7M_f7 <- fa(DGS_7M_f7,
 EFA_7M_f7
 print(EFA_7M_f7$loadings, cutoff = 0.3) 
 
-DGS%>%
-  ggplot()+
-  geom_bar(aes(x=DGS_2, alpha = 0.1))+
-  geom_bar(aes(x=DGS_11))
 #visualization
 fa.diagram(EFA_7M_f7)
             
@@ -763,7 +799,7 @@ fa.diagram(EFA_7M_f7)
 
 ###Confirmatory factor analysis
 
-```{r CFA}
+```#{r CFA}
 
 DGS_7M_model <- '
 F1 =~ DGS_4+DGS_7+DGS_12+DGS_15+DGS_17+DGS_18+DGS_19+DGS_22+DGS_25+DGS_30+DGS_32+DGS_33+DGS_34+DGS_36+DGS_37+DGS_49+DGS_55+DGS_56+DGS_57+DGS_58+DGS_59+DGS_60+DGS_61+DGS_63+DGS_64+DGS_74+DGS_75
@@ -803,321 +839,587 @@ model_parameters(DGS_7M_fit, standardize = TRUE)
 ```
 
 
-```{r CFA}
-##CFA
+```#{r CFA_M7_concise}
 
-#factor construction
-DGS_7M_ML1 <- DGS_fit%>%
-  select(c(DGS_17,DGS_22,DGS_36,DGS_58,DGS_60,DGS_61))
-DGS_7M_ML2 <- DGS_fit %>%
-  select(c(DGS_24,DGS_28,DGS_35,DGS_68))
-DGS_7M_ML3 <- DGS_fit %>%
-  select(c(DGS_45,DGS_67,DGS_70))
-DGS_7M_ML4 <- DGS_fit %>%
-  select(c(DGS_1,DGS_21,DGS_44,DGS_65))
-DGS_7M_ML5 <- DGS_fit %>%
-  select(c(DGS_3,DGS_10,DGS_26,DGS_41,DGS_47,DGS_54,DGS_69,DGS_72))
-DGS_7M_ML6 <- DGS_fit %>%
-  select(c(DGS_9,DGS_27,DGS_29,DGS_46,DGS_51,DGS_52))
-DGS_7M_ML7 <- DGS_fit %>%
-  select(c(DGS_6,DGS_37,DGS_39,DGS_49,DGS_59,DGS_64))
-
-DGS_7M <- c(DGS_7M_ML1,DGS_7M_ML2,DGS_7M_ML3,DGS_7M_ML4,DGS_7M_ML5,DGS_7M_ML6,DGS_7M_ML7)
-
-DGS_6M_model <- '
-#F1 =~ DGS_4+DGS_12+DGS_15+DGS_17+DGS_18+DGS_19+DGS_30+DGS_32+DGS_33+DGS_36+DGS_49+DGS_56+DGS_57+DGS_58+DGS_60+DGS_61+DGS_63+DGS_74
-
-F1_1 =~ DGS_15+DGS_17+DGS_30+DGS_33+DGS_57+DGS_58+DGS_61+DGS_63+DGS_74
-F1_2 =~ DGS_18+DGS_19+DGS_32+DGS_36+DGS_49+DGS_56+DGS_60
-F1_3 =~ a*DGS_4+a*DGS_12
-F1 =~ F1_1+F1_2+F1_3
-F5 =~ DGS_5+DGS_10+DGS_26+DGS_41+DGS_47+DGS_54+DGS_69+DGS_72+DGS_44
-F6 =~ DGS_1+DGS_21+DGS_44+DGS_65
-FG1 =~ F5+F6
-F4 =~ DGS_9+DGS_27+DGS_29+DGS_46
-F2 =~ DGS_28+DGS_35+DGS_48+DGS_68
-F3 =~ DGS_38+DGS_39+DGS_67+DGS_70
-FG2 =~ F2+F3
-FM1 =~ F1+FG1+FG2+F4
+DGS_7M_C_model <- '
+F1=~DGS_4+DGS_12+DGS_15+DGS_17+DGS_19+DGS_22+DGS_32+DGS_33+DGS_49+DGS_56+DGS_60+DGS_75
+F2=~DGS_10+DGS_26+DGS_41+DGS_54+DGS_57+DGS_69+DGS_72
+F3=~DGS_9+DGS_27+DGS_29+DGS_46+DGS_51+DGS_52
+F4=~DGS_1+DGS_21+DGS_44+DGS_65
+F5=~DGS_20+DGS_28+DGS_35+DGS_48+DGS_68
+F6=~DGS_6+DGS_38+DGS_39+DGS_45+DGS_67+DGS_70+DGS_71
+F7=~DGS_2+DGS_11+DGS_48+DGS_13
 '
 
-DGS_6M_fit <- cfa(
-  model = DGS_6M_model,
+DGS_7M_C_fit <- cfa(
+  model = DGS_7M_C_model,
   data = DGS,
   std.lv = TRUE)
 
-summary(DGS_6M_fit,
+summary(DGS_7M_C_fit,
         standardized = TRUE,
         rsquare = TRUE,
         fit.measures=TRUE)
 
-parameterestimates(DGS_6M_fit,
+parameterestimates(DGS_7M_C_fit,
                    standardized = TRUE)
 
-fitmeasures(DGS_6M_fit)
+fitmeasures(DGS_7M_C_fit)
 
-modificationindices(DGS_6M_fit,sort = T)
+modificationindices(DGS_7M_C_fit,sort = T)
 
-semPaths(DGS_6M_fit,
+semPaths(DGS_7M_C_fit,
          whatLabels = "std",
          what = "std",
          layout = "tree2",
          edge.label.cex = 1)
 
-model_parameters(DGS_7M_ML1_fit, standardize = TRUE)
+model_parameters(DGS_7M_C_fit, standardize = TRUE)
 
-tidy(DGS_7M_ML1_fit) #with corvar compared to the latter one
-glance(DGS_7M_ML1_fit,)  # fit indices in a glance
+tidy(DGS_7M_C_fit) #with corvar compared to the latter one
+glance(DGS_7M_C_fit)  # fit indices in a glance
 
 #compare model: anova(model1,model2)
 #check fitmeasures(model, c("aic","evic"))
+```
 
 
-##Reliability
-factanal(as.matrix(DGS_7M_ML1), factors =1, rotation = "promax")
+###Item assignment
 
-factanal(as.matrix(DGS_7M_ML6), factors =2, rotation = "promax")
+```{r scale_assign}
+DGS_7model_1 <- DGS %>%
+  select(c(DGS_4,DGS_12,DGS_15,DGS_17,DGS_19,DGS_22,DGS_32,DGS_33,DGS_49,DGS_56,DGS_60,DGS_75))
+DGS_7model_2 <- DGS %>%
+  select(c(DGS_5,DGS_10,DGS_26,DGS_41,DGS_54,DGS_69,DGS_72))
+DGS_7model_3 <- DGS %>%
+  select(c(DGS_9, DGS_27,DGS_29,DGS_46,DGS_51,DGS_52))
+DGS_7model_4 <- DGS %>%
+  select(c(DGS_1,DGS_21,DGS_44,DGS_65))
+DGS_7model_5 <- DGS %>%
+  select(c(DGS_20,DGS_28,DGS_35,DGS_48,DGS_68))
+DGS_7model_6 <- DGS %>%
+  select(c(DGS_6,DGS_38,DGS_39,DGS_45,DGS_67,DGS_70,DGS_71))
+DGS_7model_7 <- DGS %>%
+  select(c(DGS_2,DGS_11,DGS_73,DGS_13))
 
+#6 factors model without behavioral items
+DGS_6model_1 <- DGS %>%
+  select(c(DGS_4,DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_22,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_37,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_74))
+DGS_6model_2 <- DGS %>%
+  select(c(DGS_10,DGS_26,DGS_41,DGS_54,DGS_57,DGS_69,DGS_72))
+DGS_6model_3 <- DGS %>%
+  select(c(DGS_9,DGS_20,DGS_27,DGS_29,DGS_46,DGS_52))
+DGS_6model_4 <- DGS %>%
+  select(c(DGS_2,DGS_11,DGS_28,DGS_35,DGS_48,DGS_68))
+DGS_6model_5 <- DGS %>%
+  select(c(DGS_1,DGS_21,DGS_44,DGS_65))
+DGS_6model_6 <- DGS %>%
+  select(c(DGS_6,DGS_38,DGS_39,DGS_45,DGS_67,DGS_70,DGS_71))
+
+```
+
+##corplot
+
+```{r corplots}
 #visualization
+corPlot(DGS_7model_1)
+corPlot(DGS_7model_2)
+corPlot(DGS_7model_3)
+corPlot(DGS_7model_4)
+corPlot(DGS_7model_5)
+corPlot(DGS_7model_6)
+corPlot(DGS_7model_7)
+cor(DGS_beh)
 
-DGS_6M_ML4 <- DGS %>%
-  select(c(DGS_9,DGS_27,DGS_29,DGS_46,DGS_52))
-corrplot(cor(DGS_6M_ML4))
-
-DGS_6M_ML3 <- DGS %>%
-  select(c(DGS_38,DGS_39,DGS_67,DGS_70))
-corrplot(cor(DGS_6M_ML3))
-
+# 6 factors
+corPlot(DGS_6model_1)
+corPlot(DGS_6model_2)
+corPlot(DGS_6model_3)
+corPlot(DGS_6model_4)
+corPlot(DGS_6model_5)
+corPlot(DGS_6model_6)
 
 ## make a correlation matrix to screen for overlapping items
-## Pick out 
-
-##we can use corplot
-#corrplot(cor(data_cleaned[,-c(86:91)]))
 ```
 
 
-```{r}
-DGS_test <- '
-C1 =~ DGS_45+DGS_67+DGS_70
-C2 =~ DGS_38+DGS_71+DGS_70
-C3 =~ DGS_6+DGS_19+DGS_39+DGS_55+DGS_67
+###IRT! (generalized partial credit model)
 
-C =~C1+C2+C3
-'
+## 7 factors model
 
-DGS_tes_fit <- cfa(
-  model = DGS_test,
-  data = DGS,
-  std.lv = TRUE)
+```{R IRT7_1}
+DGS_IRT_1 = mirt(data = DGS_7model_1,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT_1)
+coef(DGS_IRT_1, IRTpars = T)
+#itemplot(DGS_IRT_1, 1, type = "trace")
+itemplot(DGS_IRT_1, 1, type = "info")
+plot(DGS_IRT_1, type = "trace")
+plot(DGS_IRT_1, type = "info")
+plot(DGS_IRT_1) #expected score curve
+#person fit
+#fscores(DGS_IRT_1) #factor score for each participants
+#mirt::itemfit(DGS_IRT_1)
+#mirt::personfit(DGS_IRT_1)
 
-summary(DGS_tes_fit,
-        standardized = TRUE,
-        rsquare = TRUE,
-        fit.measures=TRUE)
-
-modificationindices(DGS_tes_fit,sort = T)
-
-semPaths(DGS_tes_fit,
-         whatLabels = "std",
-         what = "std",
-         layout = "tree2",
-         edge.label.cex = 1)
 
 ```
 
 
+```{R IRT7_2}
 
-###Item analysis
-
-```{r Item_analysis}
-
-describe(DGS)
-
-data_cleaned %>%
-  select(DGS_1) %>%
-  ggplot(aes(x=DGS_1)) +
-  geom_bar()
-
-data_cleaned %>%
-  select(DGS_12) %>%
-  ggplot(aes(x=DGS_12)) +
-  geom_bar()
-
-data_cleaned %>%
-  select(DGS_15) %>%
-  ggplot(aes(x=DGS_15)) +
-  geom_bar()
-
-data_cleaned %>%
-  select(DGS_17) %>%
-  ggplot(aes(x=DGS_17)) +
-  geom_bar()
-
-##make these into a function? 
-  test <- DGS_7M_f7-1
-  RSM_test <- RSM(X = test)
-  person.parameter_test <- person.parameter(object = RSM_test)
-  itemfit_test <- itemfit(object = person.parameter_test)
-  thresholds_test <- thresholds(object = RSM_test)
-  
-  ?RSM
-
-
-
-## functions for Rating Scale Model
-IRT_R <- function(x) {
-  M <- x-1
-  RSM_M <- RSM(X = M)
-  person.parameter_M <- person.parameter(object = RSM_M)
-  itemfit_M <- itemfit(object = person.parameter_M)
-  thresholds_M <- thresholds(object = RSM_M)
-  return(itemfit_M)
-}
-
-IRT_R(temp)
-
-
-temp <- DGS_7M_f4 %>%
-  select(!c(DGS_21,DGS_65))
-
-IRT_R_G <- function(x) {
-  M <- x-1
-  RSM_M <- RSM(X = M)
-  person.parameter_M <- person.parameter(object = RSM_M)
-  itemfit_M <- itemfit(object = person.parameter_M)
-  thresholds_M <- thresholds(object = RSM_M)
-  plotICC(object = RSM_M)
-}
-
-IRT_R_G(DGS_7M_f4)
-
-M7_f6 <- DGS%>%
-  select(DGS_45,DGS_67,DGS_70)
-
-M7_f5 <- DGS%>%
-  select(DGS_2,DGS_11,DGS_70)
-
-
-IRT_R(DGS)
-
-
-M<- M7_f6-1
-
-RSM_M <- RSM(X = M)
-
-person.parameter_M <- person.parameter(object = RSM_M)
-
-itemfit_M <- itemfit(object = person.parameter_M)
-
-itemfit_M
-
-thresholds_M <- thresholds(object = RSM_M)
-
-thresholds_M 
-
-v_threshpar <- thresholds_M$threshpar[1:2]
-plotICC(object = RSM_M)
-abline(v=v_threshpar,
-       col = "gray")
-
-M<- M7_f5-1
-
-RSM_M <- RSM(X = M)
-
-person.parameter_M <- person.parameter(object = RSM_M)
-
-itemfit_M <- itemfit(object = person.parameter_M)
-
-itemfit_M
-
-thresholds_M <- thresholds(object = RSM_M)
-
-thresholds_M 
-
-v_threshpar <- thresholds_M$threshpar[1:2]
-plotICC(object = RSM_M)
-abline(v=v_threshpar,
-       col = "gray")
-
-##create the item information curve
+DGS_IRT_2 = mirt(data = DGS_7model_2,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT_2)
+coef(DGS_IRT_2, IRTpars = T)
+#itemplot(DGS_IRT_2, 5, type = "trace")
+itemplot(DGS_IRT_2, 5, type = "info")
+plot(DGS_IRT_2, type = "trace")
+plot(DGS_IRT_2, type = "info")
+plot(DGS_IRT_2) #expected score curve
+#person fit
+#fscores(DGS_IRT_2) #factor score for each participants
+#mirt::itemfit(DGS_IRT_2)
+#mirt::personfit(DGS_IRT_2)
 
 ```
 
 
-```{r scale_scoring}
+```{R IRT7_3}
 
-DGS_7C_1 <- DGS %>%
-  select(c(DGS_4,DGS_12,DGS_15,DGS_17,DGS_19,DGS_22,DGS_32,DGS_33,DGS_49,DGS_56,DGS_60,DGS_75))
-data$DGS_7C_1 <- rowSums(DGS_7C_1)/ncol(DGS_7C_1)
-data %>%
-  ggplot(aes(x= DGS_7C_1))+
-  geom_density()
+DGS_IRT_3 = mirt(data = DGS_7model_3,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT_3)
+coef(DGS_IRT_3, IRTpars = T)
+#itemplot(DGS_IRT_3, 1, type = "trace")
+itemplot(DGS_IRT_3, 3, type = "info")
+plot(DGS_IRT_3, type = "trace")
+plot(DGS_IRT_3, type = "info")
+plot(DGS_IRT_3) #expected score curve
+#person fit
+#fscores(DGS_IRT_3) #factor score for each participants
+#mirt::itemfit(DGS_IRT_3)
+#mirt::personfit(DGS_IRT_3)
+```
 
-DGS_7C_2 <- DGS %>%
+```{r IRT7_4}
+
+DGS_IRT_4 = mirt(data = DGS_7model_4,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT_4)
+coef(DGS_IRT_4, IRTpars = T)
+#itemplot(DGS_IRT_4, 5, type = "trace")
+itemplot(DGS_IRT_4, 4, type = "info")
+plot(DGS_IRT_4, type = "trace")
+plot(DGS_IRT_4, type = "info")
+plot(DGS_IRT_4) #expected score curve
+#person fit
+#fscores(DGS_IRT_4) #factor score for each participants
+#mirt::itemfit(DGS_IRT_4)
+#mirt::personfit(DGS_IRT_4)
+
+```
+
+```{r IRT7_5}
+
+DGS_IRT_5 = mirt(data = DGS_7model_5,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT_5)
+coef(DGS_IRT_5, IRTpars = T)
+#itemplot(DGS_IRT_5, 5, type = "trace")
+itemplot(DGS_IRT_5, 3, type = "info")
+plot(DGS_IRT_5, type = "trace")
+plot(DGS_IRT_5, type = "info")
+plot(DGS_IRT_5) #expected score curve
+#person fit
+#fscores(DGS_IRT_5) #factor score for each participants
+#mirt::itemfit(DGS_IRT_5)
+#mirt::personfit(DGS_IRT_5)
+
+```
+
+```{r IRT7_6}
+
+
+DGS_IRT_6 = mirt(data = DGS_7model_6,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT_6)
+coef(DGS_IRT_6, IRTpars = T)
+#itemplot(DGS_IRT_6, 5, type = "trace")
+itemplot(DGS_IRT_6, 1, type = "info")
+plot(DGS_IRT_6, type = "trace")
+plot(DGS_IRT_6, type = "info")
+plot(DGS_IRT_6) #expected score curve
+#person fit
+#fscores(DGS_IRT_6) #factor score for each participants
+#mirt::itemfit(DGS_IRT_6)
+#mirt::personfit(DGS_IRT_6)
+
+```
+
+```{r IRT7_7}
+
+DGS_IRT_7 = mirt(data = DGS_7model_7,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT_7)
+coef(DGS_IRT_7, IRTpars = T)
+#itemplot(DGS_IRT_7, 1, type = "trace")
+itemplot(DGS_IRT_7, 1, type = "info")
+plot(DGS_IRT_7, type = "trace")
+plot(DGS_IRT_7, type = "info")
+plot(DGS_IRT_7) #expected score curve
+#person fit
+#fscores(DGS_IRT_7) #factor score for each participants
+#mirt::itemfit(DGS_IRT_7)
+#mirt::personfit(DGS_IRT_7)
+```
+
+
+## 6 factors (dropping rule is loading in IFA < 0.3)
+```{R IRT6_1}
+DGS_IRT6_1 = mirt(data = DGS_6model_1,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT6_1)
+coef(DGS_IRT6_1, IRTpars = T)
+#itemplot(DGS_IRT6_1, 1, type = "trace")
+itemplot(DGS_IRT6_1, 1, type = "info")
+plot(DGS_IRT6_1, type = "trace")
+plot(DGS_IRT6_1, type = "info")
+plot(DGS_IRT6_1) #expected score curve
+
+
+##recommend taking out 4 and 22
+DGS_6model_1 <- DGS_6model_1%>%
+  select(!c(DGS_4,DGS_22))
+
+DGS_IRT6_1 = mirt(data = DGS_6model_1,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT6_1)
+plot(DGS_IRT6_1, type = "trace")
+#traces suggest that 2-4 options were not commonly used
+plot(DGS_IRT6_1, type = "info")
+#item information suggests that we need to improve the ability to identify people on top of the altruism scores. 
+
+
+#person fit
+#fscores(DGS_IRT6_1) #factor score for each participants
+#mirt::itemfit(DGS_IRT6_1)
+#mirt::personfit(DGS_IRT6_1)
+```
+
+```{R IRT6_2}
+DGS_IRT6_2 = mirt(data = DGS_6model_2,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT6_2)
+coef(DGS_IRT6_2, IRTpars = T)
+#itemplot(DGS_IRT6_2, 1, type = "trace")
+itemplot(DGS_IRT6_2, 1, type = "info")
+plot(DGS_IRT6_2, type = "trace")
+plot(DGS_IRT6_2, type = "info")
+plot(DGS_IRT6_2) #expected score curve
+
+#person fit
+#fscores(DGS_IRT6_2) #factor score for each participants
+#mirt::itemfit(DGS_IRT6_2)
+#mirt::personfit(DGS_IRT6_2)
+
+```
+
+```{R IRT6_3}
+DGS_IRT6_3 = mirt(data = DGS_6model_3,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT6_3)
+coef(DGS_IRT6_3, IRTpars = T)
+#itemplot(DGS_IRT6_3, 1, type = "trace")
+itemplot(DGS_IRT6_3, 1, type = "info")
+plot(DGS_IRT6_3, type = "trace")
+plot(DGS_IRT6_3, type = "info")
+plot(DGS_IRT6_3) #expected score curve
+
+# suggest remove 20
+DGS_6model_3 <- DGS_6model_3%>%
+  select(!c(DGS_20))
+DGS_IRT6_3 = mirt(data = DGS_6model_3,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT6_3)
+
+#person fit
+#fscores(DGS_IRT6_3) #factor score for each participants
+#mirt::itemfit(DGS_IRT6_3)
+#mirt::personfit(DGS_IRT6_3)
+```
+
+```{R IRT6_4}
+DGS_IRT6_4 = mirt(data = DGS_6model_4,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT6_4)
+coef(DGS_IRT6_4, IRTpars = T)
+#itemplot(DGS_IRT6_4, 1, type = "trace")
+itemplot(DGS_IRT6_4, 1, type = "info")
+plot(DGS_IRT6_4, type = "trace")
+plot(DGS_IRT6_4, type = "info")
+plot(DGS_IRT6_4) #expected score curve
+
+#suggest remove 2, 11 due to poor discrimination
+DGS_6model_4 <- DGS_6model_4 %>%
+  select(!c(DGS_2,DGS_11))
+DGS_IRT6_4 = mirt(data = DGS_6model_4,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT6_4)
+
+#person fit
+#fscores(DGS_IRT6_4) #factor score for each participants
+#mirt::itemfit(DGS_IRT6_4)
+#mirt::personfit(DGS_IRT6_4)
+
+```
+
+```{R IRT6_5}
+DGS_IRT6_5 = mirt(data = DGS_6model_5,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT6_5)
+coef(DGS_IRT6_5, IRTpars = T)
+#itemplot(DGS_IRT6_5, 1, type = "trace")
+itemplot(DGS_IRT6_5, 1, type = "info")
+plot(DGS_IRT6_5, type = "trace")
+plot(DGS_IRT6_5, type = "info")
+plot(DGS_IRT6_5) #expected score curve
+
+#suggest dropping 1
+DGS_6model_5 <- DGS_6model_5 %>%
+  select(!c(DGS_1))
+DGS_IRT6_5 = mirt(data = DGS_6model_5,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT6_5)
+
+
+#person fit
+#fscores(DGS_IRT6_5) #factor score for each participants
+#mirt::itemfit(DGS_IRT6_5)
+#mirt::personfit(DGS_IRT6_5)
+
+```
+
+```{R IRT6_6}
+DGS_IRT6_6 = mirt(data = DGS_6model_6,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT6_6)
+coef(DGS_IRT6_6, IRTpars = T)
+#itemplot(DGS_IRT6_6, 1, type = "trace")
+itemplot(DGS_IRT6_6, 1, type = "info")
+plot(DGS_IRT6_6, type = "trace")
+plot(DGS_IRT6_6, type = "info")
+plot(DGS_IRT6_6) #expected score curve
+
+#suggest dropping 45
+DGS_6model_6 <- DGS_6model_6 %>%
+  select(!c(DGS_45))
+DGS_IRT6_6 = mirt(data = DGS_6model_6,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT6_6)
+#need some thoughts and modification here. The categorical imperative items are not lumping very well together. 
+
+#person fit
+#fscores(DGS_IRT6_6) #factor score for each participants
+#mirt::itemfit(DGS_IRT6_6)
+#mirt::personfit(DGS_IRT6_6)
+
+```
+
+```{r IRT_beh}
+DGS_IRT_beh = mirt(data = DGS_beh,
+      model = 1, #this is for one factor
+      itemtype = "gpcmIRT" #generalized partial credit model
+)
+summary(DGS_IRT_beh)
+coef(DGS_IRT_beh, IRTpars = T)
+plot(DGS_IRT_beh, type = "trace")
+plot(DGS_IRT_beh, type = "info")
+plot(DGS_IRT_beh) #expected score curve
+#person fit
+fscores(DGS_IRT_beh) #factor score for each participants
+mirt::itemfit(DGS_IRT_beh)
+mirt::personfit(DGS_IRT_beh)
+```
+
+##trimming based on IRT
+
+```{r IRT_trim}
+#6 factors model without behavioral items
+DGS_6model_1 <- DGS %>%
+  select(c(DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_37,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_74))
+DGS_6model_2 <- DGS %>%
   select(c(DGS_10,DGS_26,DGS_41,DGS_54,DGS_57,DGS_69,DGS_72))
-data$DGS_7C_2 <- rowSums(DGS_7C_2)/ncol(DGS_7C_2)
-data %>%
-  ggplot(aes(x= DGS_7C_2))+
-  geom_density()
+DGS_6model_3 <- DGS %>%
+  select(c(DGS_9,DGS_27,DGS_29,DGS_46,DGS_52))
+DGS_6model_4 <- DGS %>%
+  select(c(DGS_28,DGS_35,DGS_48,DGS_68))
+DGS_6model_5 <- DGS %>%
+  select(c(DGS_21,DGS_44,DGS_65))
+DGS_6model_6 <- DGS %>%
+  select(c(DGS_6,DGS_38,DGS_39,DGS_67,DGS_70,DGS_71))
+```
 
-DGS_7C_3 <- DGS %>%
-  select(c(DGS_9,DGS_27,DGS_29,DGS_46,DGS_51,DGS_52))
-data$DGS_7C_3 <- rowSums(DGS_7C_3)/ncol(DGS_7C_3)
-data %>%
-  ggplot(aes(x= DGS_7C_3))+
-  geom_density()
+##check factor structure after trimming
+```{r 6factors_trimmed}
+# try to trim out behavioral items and create 6 factors
+DGS_fit_6C <- DGS %>%
+  select(c(
+    DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_37,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_74,
+    DGS_10,DGS_26,DGS_41,DGS_54,DGS_57,DGS_69,DGS_72,
+    DGS_9,DGS_27,DGS_29,DGS_46,DGS_52,
+    DGS_28,DGS_35,DGS_48,DGS_68,
+    DGS_21,DGS_44,DGS_65,
+    DGS_6,DGS_38,DGS_39,DGS_67,DGS_70,DGS_71
+  ))
 
+EFA_fit_6C <- fa(DGS_fit_6C,
+             nfactors = 6,
+             rotate = "oblimin",
+             fm="ml")
+EFA_fit_6C
+print(EFA_fit_6C$loadings, cutoff = 0.3)
+print(EFA_fit_6C$loadings)
 
-DGS_7C_4 <- DGS %>%
-  select(c(DGS_1,DGS_21,DGS_44,DGS_65))
-data$DGS_7C_4 <- rowSums(DGS_7C_4)/ncol(DGS_7C_4)
-
-data %>%
-  ggplot(aes(x= DGS_7C_4))+
-  geom_density()
-
-
-DGS_7C_5 <- DGS %>%
-  select(c(DGS_20,DGS_28,DGS_35,DGS_48,DGS_68))
-data$DGS_7C_5<- rowSums(DGS_7C_5)/ncol(DGS_7C_5)
-
-data %>%
-  ggplot(aes(x= DGS_7C_5))+
-  geom_density()
-
-
-DGS_7C_6 <- DGS %>%
-  select(c(DGS_6,DGS_38,DGS_39,DGS_45,DGS_67,DGS_70,DGS_71))
-data$DGS_7C_6 <- rowSums(DGS_7C_6)/ncol(DGS_7C_6)
-
-data %>%
-  ggplot(aes(x= DGS_7C_6))+
-  geom_density()
-
-
-DGS_7C_7 <- DGS %>%
-  select(c(DGS_2,DGS_11,DGS_48,DGS_13))
-data$DGS_7C_7 <- rowSums(DGS_7C_7)/ncol(DGS_7C_7)
-
-data %>%
-  ggplot(aes(x= DGS_7C_7))+
-  geom_density()
-
+#fit
+EFA_fit_6C$rms  # Root mean square of the residuals (lower the better)
+EFA_fit_6C$RMSEA # root mean squared error of approximation (lower the better)
+EFA_fit_6C$TLI  # tucker lewis index
+1- ((EFA_fit_6C$STATISTIC-EFA_fit_6C$dof)/
+      (EFA_fit_6C$null.chisq-EFA_fit_6C$null.dof))  #CFI
 
 ```
+
+
+###scoring
+
+
+```{r basic_score}
+data$DGS_7C_1 <- rowSums(DGS_7model_1)/ncol(DGS_7model_1)
+data$DGS_7C_2 <- rowSums(DGS_7model_2)/ncol(DGS_7model_2)
+data$DGS_7C_3 <- rowSums(DGS_7model_3)/ncol(DGS_7model_3)
+data$DGS_7C_4 <- rowSums(DGS_7model_4)/ncol(DGS_7model_4)
+data$DGS_7C_5 <- rowSums(DGS_7model_5)/ncol(DGS_7model_5)
+data$DGS_7C_6 <- rowSums(DGS_7model_6)/ncol(DGS_7model_6)
+data$DGS_7C_7 <- rowSums(DGS_7model_7)/ncol(DGS_7model_7)
+
+data$DGS_6C_1 <- rowSums(DGS_6model_1)/ncol(DGS_6model_1)
+data$DGS_6C_2 <- rowSums(DGS_6model_2)/ncol(DGS_6model_2)
+data$DGS_6C_3 <- rowSums(DGS_6model_3)/ncol(DGS_6model_3)
+data$DGS_6C_4 <- rowSums(DGS_6model_4)/ncol(DGS_6model_4)
+data$DGS_6C_5 <- rowSums(DGS_6model_5)/ncol(DGS_6model_5)
+data$DGS_6C_6 <- rowSums(DGS_6model_6)/ncol(DGS_6model_6)
+
+```
+
+```{r beh}
+#construct behavioral estimates
+
+DGS_beh <- data%>%
+  select(c(DGS_13,DGS_73))
+
+data$DGS_beh <- rowSums(DGS_beh)/ncol(DGS_beh)
+
+data$DGS_donation <- data %>%
+  select(DGS_13)
+
+data$DGS_vol <- data %>%
+  select(DGS_73)
+```
+
+```{r IRT_score}
+
+data$DGS_7C_1_fscore <- fscores(DGS_IRT_1)
+data$DGS_7C_2_fscore <- fscores(DGS_IRT_2)
+data$DGS_7C_3_fscore <- fscores(DGS_IRT_3)
+data$DGS_7C_4_fscore <- fscores(DGS_IRT_4)
+data$DGS_7C_5_fscore <- fscores(DGS_IRT_5)
+data$DGS_7C_6_fscore <- fscores(DGS_IRT_6)
+data$DGS_7C_7_fscore <- fscores(DGS_IRT_7)
+```
+###inferential analysis
+
 ```{r analysis}
-psych::omega(HEXACO_C, nfactors = 2)
+psych::omega(HEXACO_C, nfactors = 4) # alpha = 0.82
 
 DGS_HEXACO <- data %>%
   select(c(HEXACO_C,starts_with("DGS_7C_")))
 
 cor.plot(DGS_HEXACO)
+
+##regression to use non-behavioral to predict behaviors
+data$DGS_beh <- rowSums(DGS_beh)/ncol(DGS_beh)
+
+DGS_beh <- data %>%
+  select(c(DGS_beh,
+           DGS_7C_1,
+           DGS_7C_2,
+           DGS_7C_3,
+           DGS_7C_4,
+           DGS_7C_5,
+           DGS_7C_6))
+
+cor.plot(DGS_beh)
+
+
+##with factor scores
+DGSf_HEXACO <- data %>%
+  select(c(HEXACO_C,starts_with("DGS_6C_"),DGS_donation,DGS_vol))
+
+cor.plot(DGSf_HEXACO)
+
+m_DGS_beh <- lm (
+  DGS_13 ~ 
+    DGS_6C_1 +
+    DGS_6C_2 +
+    DGS_6C_4 +
+    DGS_6C_3 +
+    DGS_6C_5 +
+    DGS_6C_6,
+  data= data
+)
+summary(m_DGS_beh)
 ```
 
 ###Code Book
 
-```{r codebook}
+#```{r codebook}
 #codebook_data <- data %>% #select only the variables to display for codebook
 #select(-ID)
 
