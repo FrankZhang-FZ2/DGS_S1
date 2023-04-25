@@ -1,7 +1,7 @@
 ---
-title: "DGS_S1_analyses"
+title: "DGS_S1_analyses_Noutliers"
 author: "Qilin Zhang"
-date: "2023-02-17"
+date: "2023-04-13"
 output: html_document
 ---
 
@@ -32,7 +32,6 @@ library(semPlot)
 library(parameters)
 library(broom)
 library(likert)
-library(sjPlot)
 
 #if need to download the epmr package
 #if (!require("devtools")) install.packages("devtools")   
@@ -50,7 +49,8 @@ dict <- rio::import(file = "data/DGS_S1_dictionary.xlsx") #dictionary
 
 data <- read.csv(file = 'data/DGS_S1_Deidentified For Analyses.csv', sep = ",") #data
 
-##trim based on completion time (>180)
+#cleaning based on completion time
+
 data <- data %>%
   filter(Duration..in.seconds. >= 180)
 
@@ -84,20 +84,17 @@ data <- data %>%
   filter(DGS_31 == 4) %>%
   filter((DGS_53 == 2))
 
-#prepare dataframe for different scales
-DGS <- data[grep("DGS_1",colnames(data)):grep("DGS_75",colnames(data))] %>%
-  select(!c(DGS_31,DGS_53))
-
-
 ##remove people that gave 90% of the same answer in DGS
 
 for(i in 1:7){
-  percent <- function(x){
-  sum((x == i)/length(x)*100)
+  percent_i <- function(x){
+  sum((x==i)/length(x)*100)
   }
-  number <- apply(DGS,1,percent)
-  data <- data[c(number<90),]
+  number_i <- apply(data,1,percent_i)
+  data <- data[c(number_i<90),]
 }
+
+
 
 #function for checking percentage of missing data (unit=%)
 percent_missing <- function(x){
@@ -270,9 +267,27 @@ data$M7_7 <- data %>%
   aggregate_and_document_scale()
 ```
 
+```#{r outliers}
+scale_vars<- data[,-c(grep("Age",colnames(data)):ncol(data))] %>%
+  select(-c(DGS_31,DGS_53))
+
+mahal <- mahalanobis(scale_vars,
+                     colMeans(scale_vars, na.rm = TRUE),
+                     cov(scale_vars),use = "pairwise.complete.obs")
+mahal
+
+cutoff <- qchisq(p = 1-0.001, # 1 minus alpha
+                 df = ncol(scale_vars))
+table(mahal < cutoff)
+
+
+data <- data[c(mahal < cutoff),]
+
+```
 
 ``` {R assumption}
 ## assumption check
+set.seed(1234)
 random_variable <- rchisq(nrow(data), 7)
 fake_model <- lm(random_variable ~ ., 
                  data = data[ , -c(86:91)])
@@ -299,10 +314,10 @@ hist(standardized)#check for normality
 data_cleaned <- data
 
 #prepare dataframe for different scales
-DGS <- data_cleaned[grep("DGS_1",colnames(data_cleaned)):grep("DGS_75",colnames(data_cleaned))]
+DGS <- data_cleaned[grep("DGS_1$",colnames(data_cleaned)):grep("DGS_75",colnames(data_cleaned))]
 DGS <- DGS[,-c(grep("DGS_31",colnames(DGS)),grep("DGS_53",colnames(DGS)))]
 
-HEXACO_C <- data_cleaned[grep("HEXACO_C_1",colnames(data_cleaned)):grep("HEXACO_C_10",colnames(data_cleaned))]
+HEXACO_C <- data_cleaned[grep("HEXACO_C_1$",colnames(data_cleaned)):grep("HEXACO_C_10",colnames(data_cleaned))]
 ```
 
 ###EFA
@@ -326,17 +341,18 @@ fa.parallel(DGS,
 ```
 
 
-```{r EFA_9model}
-DGS_fit_9 <- DGS %>%
-  select(!c(DGS_3,DGS_4,DGS_12,DGS_14,DGS_16,DGS_25,DGS_40,DGS_43,DGS_34,DGS_50,DGS_59,DGS_62,DGS_66,DGS_37,DGS_42,DGS_23))
+```{r EFA_8model}
+DGS_fit_8 <- DGS %>%
+  select(!c())
 
-EFA_fit_9 <- fa(DGS_fit_9,
-             nfactors = 9,
+EFA_fit_8 <- fa(DGS_fit_8,
+             nfactors = 8,
              rotate = "oblimin",
              fm="ml")
-EFA_fit_9 <- fa.sort(EFA_fit_9)
-print(EFA_fit_9$loadings, cutoff = 0.3)
-print(EFA_fit_9$loadings)#model Abandoned because of conceptual reasons (see write-up)
+EFA_fit_8 <- fa.sort(EFA_fit_8)
+EFA_fit_8
+print(EFA_fit_8$loadings, cutoff = 0.3)
+print(EFA_fit_8$loadings) #model Abandoned because of conceptual reasons (see write-up)
 
 ```
 
@@ -345,7 +361,7 @@ print(EFA_fit_9$loadings)#model Abandoned because of conceptual reasons (see wri
 #7 factor (trim items with loading lower than 0.3)
 
 DGS_fit_7 <- DGS %>%
-  select(!c(DGS_16,DGS_40,DGS_43,DGS_50,DGS_42,DGS_23,DGS_14,DGS_62,DGS_73,DGS_13))
+  select(!c(DGS_16,DGS_40,DGS_43,DGS_50,DGS_42,DGS_23,DGS_14))
 
 EFA_fit_7 <- fa(DGS_fit_7,
              nfactors = 7,
@@ -436,7 +452,6 @@ EFA_fit_4 <- fa(DGS_fit_4,
              nfactors = 4,
              rotate = "oblimin",
              fm="ml")
-EFA_fit_4 <- fa.sort(EFA_fit_4)
 EFA_fit_4
 print(EFA_fit_4$loadings, cutoff = 0.45)
 print(EFA_fit_4$loadings)
@@ -461,7 +476,6 @@ EFA_fit_6 <- fa(DGS_fit_6,
              nfactors = 6,
              rotate = "oblimin",
              fm="ml")
-EFA_fit_6 <- fa.sort(EFA_fit_6)
 EFA_fit_6
 print(EFA_fit_6$loadings, cutoff = 0.4)
 print(EFA_fit_6$loadings)
@@ -482,27 +496,21 @@ EFA_fit_6$TLI  # tucker lewis index
 # try to trim out behavioral items and create 6 factors
 DGS_fit_6C <- DGS %>%
   select(c(
-    DGS_4,DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_22,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_49,DGS_56,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_75,
+    DGS_4,DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_22,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_37,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_75,
     DGS_5,DGS_10,DGS_26,DGS_41,DGS_54,DGS_69,DGS_72,
     DGS_9,DGS_20,DGS_27,DGS_29,DGS_46,DGS_52,
     DGS_2,DGS_11,DGS_28,DGS_35,DGS_48,DGS_68,
     DGS_1,DGS_21,DGS_44,DGS_65,
     DGS_6,DGS_38,DGS_39,DGS_45,DGS_67,DGS_70,DGS_71
   ))
-# 64 59 47(poor conceptual fit) 55(mixed conceptual fit) 23(poor conceptual fit),37 poor fitting
-# DGS_13,DGS_73,DGS_16,DGS_40,DGS_42,DGS_43 out due to low loadings (<0.3)
+# 64 59 47(poor conceptual fit) 55(mixed conceptual fit) 23(poor conceptual fit)
 EFA_fit_6C <- fa(DGS_fit_6C,
              nfactors = 6,
              rotate = "oblimin",
              fm="ml")
-EFA_fit_6C <- fa.sort(EFA_fit_6C)
+EFA_fit_6C
 print(EFA_fit_6C$loadings, cutoff = 0.3)
 print(EFA_fit_6C$loadings)
-fa.diagram(EFA_fit_6C,
-            sort = T,
-            rsize = 0.5,
-           cex = 0.8,
-           main = "visualization of 6 factors structure")
 
 #initial communalities
 smc(DGS_fit_6C)
@@ -520,7 +528,7 @@ EFA_fit_6C$TLI  # tucker lewis index
 ```{r 3factors}
 DGS_fit_3 <- DGS %>%
   select(c(
-    DGS_4,DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_22,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_49,DGS_56,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_75,
+    DGS_4,DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_22,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_37,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_75,
     DGS_5,DGS_10,DGS_26,DGS_41,DGS_54,DGS_69,DGS_72,
     DGS_9,DGS_20,DGS_27,DGS_29,DGS_46,DGS_52,
     DGS_2,DGS_11,DGS_28,DGS_35,DGS_48,DGS_68,
@@ -548,7 +556,7 @@ EFA_fit_3$TLI  # tucker lewis index
 ```{r 1factors}
 DGS_fit_1 <- DGS %>%
   select(c(
-    DGS_4,DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_22,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_56,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_75,
+    DGS_4,DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_22,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_37,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_75,
     DGS_5,DGS_10,DGS_26,DGS_41,DGS_54,DGS_69,DGS_72,
     DGS_9,DGS_20,DGS_27,DGS_29,DGS_46,DGS_52,
     DGS_2,DGS_11,DGS_28,DGS_35,DGS_48,DGS_68,
@@ -557,7 +565,7 @@ DGS_fit_1 <- DGS %>%
   ))
 
 EFA_fit_1 <- fa(DGS_fit_1,
-             nfactors = 1,
+             nfactors = 2,
              rotate = "oblimin",
              fm="ml")
 EFA_fit_1 <- fa.sort(EFA_fit_1)
@@ -565,6 +573,54 @@ EFA_fit_1
 print(EFA_fit_1$loadings, cutoff = 0.3)
 print(EFA_fit_1$loadings)
 
+#fit
+EFA_fit_3$rms  # Root mean square of the residuals (lower the better)
+EFA_fit_3$RMSEA # root mean squared error of approximation (lower the better)
+EFA_fit_3$TLI  # tucker lewis index
+1- ((EFA_fit_3$STATISTIC-EFA_fit_3$dof)/
+      (EFA_fit_3$null.chisq-EFA_fit_3$null.dof))  #CFI
+```
+
+
+```{r CFA_3factors}
+
+DGS_3M_model <- '
+S1 =~ DGS_4+DGS_12+DGS_15+DGS_17+DGS_18+DGS_19+DGS_22+DGS_30+DGS_32+DGS_33+DGS_34+DGS_36+DGS_37+DGS_49+DGS_57+DGS_58+DGS_60+DGS_61+DGS_63+DGS_74+DGS_74
+S2 =~ DGS_5+DGS_10+DGS_26+DGS_41+DGS_54+DGS_69+DGS_72
+S3 =~ DGS_9+DGS_20+DGS_27+DGS_29+DGS_46+DGS_52
+S4 =~ DGS_2+DGS_11+DGS_28+DGS_35+DGS_48+DGS_68
+S5 =~ DGS_1+DGS_21+DGS_44+DGS_65
+S6 =~ DGS_6+DGS_38+DGS_39+DGS_45+DGS_67+DGS_70+DGS_71
+
+F1 =~ S1 + S3
+F2 =~ S2 + S5
+F3 =~ S4 + S6
+'
+
+DGS_3M_fit <- cfa(
+  model = DGS_3M_model,
+  data = DGS,
+  std.lv = TRUE)
+
+summary(DGS_3M_fit,
+        standardized = TRUE,
+        rsquare = TRUE,
+        fit.measures=TRUE)
+
+parameterestimates(DGS_3M_fit,
+                   standardized = TRUE)
+
+fitmeasures(DGS_3M_fit)
+
+modificationindices(DGS_3M_fit,sort = T)
+
+semPaths(DGS_3M_fit,
+         whatLabels = "std",
+         what = "std",
+         layout = "tree2",
+         edge.label.cex = 1)
+
+model_parameters(DGS_3M_fit, standardize = TRUE)
 ```
 
 
@@ -991,7 +1047,7 @@ DGS_7model_7 <- DGS %>%
 
 #6 factors model without behavioral items
 DGS_6model_1 <- DGS %>%
-  select(c(DGS_4,DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_22,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_56,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_75))
+  select(c(DGS_4,DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_22,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_37,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_75))
 DGS_6model_2 <- DGS %>%
   select(c(DGS_5,DGS_10,DGS_26,DGS_41,DGS_54,DGS_69,DGS_72))
 DGS_6model_3 <- DGS %>%
@@ -1197,9 +1253,7 @@ DGS_IRT6_1 = mirt(data = DGS_6model_1,
 )
 summary(DGS_IRT6_1)
 coef(DGS_IRT6_1, IRTpars = T)
-itemplot(DGS_IRT6_1,10, type = "trace",
-         main = "Probability function for DGS_33",
-         lwd = 6)
+#itemplot(DGS_IRT6_1, 1, type = "trace")
 itemplot(DGS_IRT6_1, 1, type = "info")
 plot(DGS_IRT6_1, type = "trace")
 plot(DGS_IRT6_1, type = "info")
@@ -1341,9 +1395,7 @@ DGS_IRT6_6 = mirt(data = DGS_6model_6,
 )
 summary(DGS_IRT6_6)
 coef(DGS_IRT6_6, IRTpars = T)
-itemplot(DGS_IRT6_6, 1, type = "trace",
-         main = "probability function for DGS_6",
-         lwd = 5)
+#itemplot(DGS_IRT6_6, 1, type = "trace")
 itemplot(DGS_IRT6_6, 1, type = "info")
 plot(DGS_IRT6_6, type = "trace")
 plot(DGS_IRT6_6, type = "info")
@@ -1382,118 +1434,12 @@ mirt::itemfit(DGS_IRT_beh)
 mirt::personfit(DGS_IRT_beh)
 ```
 
-##check factor structure after trimming
-```{r 6factors_trimmed}
-# try to trim out behavioral items and create 6 factors
-DGS_fit_6C <- DGS %>%
-  select(c(
-    DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_56,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_75,
-    DGS_5,DGS_10,DGS_26,DGS_41,DGS_54,DGS_69,DGS_72,
-    DGS_9,DGS_27,DGS_29,DGS_46,DGS_52,
-    DGS_28,DGS_35,DGS_48,DGS_68,
-    DGS_21,DGS_44,DGS_65,
-    DGS_6,DGS_38,DGS_39,DGS_70,DGS_71
-  ))
-
-EFA_fit_6C <- fa(DGS_fit_6C,
-             nfactors = 6,
-             rotate = "oblimin",
-             fm="ml")
-EFA_fit_6C <- fa.sort(EFA_fit_6C)
-EFA_fit_6C
-print(EFA_fit_6C$loadings, cutoff = 0.3)
-print(EFA_fit_6C$loadings)
-# trim 67,74 because of the poor fit in factor 6 (<0.4)
-
-
-#fit
-EFA_fit_6C$rms  # Root mean square of the residuals (lower the better)
-EFA_fit_6C$RMSEA # root mean squared error of approximation (lower the better)
-EFA_fit_6C$TLI  # tucker lewis index
-1- ((EFA_fit_6C$STATISTIC-EFA_fit_6C$dof)/
-      (EFA_fit_6C$null.chisq-EFA_fit_6C$null.dof))  #CFI
-
-```
-
-```{r 2factors_check}
-# try to trim out behavioral items and create 6 factors
-DGS_fit_2C <- DGS %>%
-  select(c(
-    DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_56,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_75,
-    DGS_5,DGS_10,DGS_26,DGS_41,DGS_54,DGS_69,DGS_72,
-    DGS_9,DGS_27,DGS_29,DGS_46,DGS_52,
-    DGS_28,DGS_35,DGS_48,DGS_68,
-    DGS_21,DGS_44,DGS_65,
-    DGS_6,DGS_38,DGS_39,DGS_70,DGS_71
-  ))
-
-EFA_fit_2C <- fa(DGS_fit_2C,
-             nfactors = 2,
-             rotate = "oblimin",
-             fm="ml")
-EFA_fit_2C <- fa.sort(EFA_fit_2C)
-EFA_fit_2C
-print(EFA_fit_2C$loadings, cutoff = 0.3)
-print(EFA_fit_2C$loadings)
-# trim 67,74 because of the poor fit in factor 6 (<0.4)
-
-
-#fit
-EFA_fit_2C$rms  # Root mean square of the residuals (lower the better)
-EFA_fit_2C$RMSEA # root mean squared error of approximation (lower the better)
-EFA_fit_2C$TLI  # tucker lewis index
-1- ((EFA_fit_2C$STATISTIC-EFA_fit_2C$dof)/
-      (EFA_fit_2C$null.chisq-EFA_fit_2C$null.dof))  #CFI
-```
-
-
-
-```{r CFA_2factors}
-
-{DGS_2M_model <- '
-S1 =~ DGS_12+DGS_15+DGS_17+DGS_18+DGS_19+DGS_30+DGS_32+DGS_33+DGS_34+DGS_36+DGS_49+DGS_56+DGS_57+DGS_58+DGS_60+DGS_61+DGS_63+DGS_75
-S2 =~ DGS_5+DGS_10+DGS_26+DGS_41+DGS_54+DGS_69+DGS_72
-S3 =~ DGS_9+DGS_27+DGS_29+DGS_46+DGS_52
-S4 =~ DGS_28+DGS_35+DGS_48+DGS_68
-S5 =~ DGS_21+DGS_44+DGS_65
-S6 =~ DGS_6+DGS_38+DGS_39+DGS_70+DGS_71
-
-F1 =~ S1 + S3 + S2 + S5
-F2 =~ S4 + S6
-'}
-
-DGS_2M_fit <- cfa(
-  model = DGS_2M_model,
-  data = DGS,
-  std.lv = TRUE)
-
-summary(DGS_2M_fit,
-        standardized = TRUE,
-        rsquare = TRUE,
-        fit.measures=TRUE)
-
-parameterestimates(DGS_2M_fit,
-                   standardized = TRUE)
-
-fitmeasures(DGS_2M_fit)
-
-modificationindices(DGS_2M_fit,sort = T)
-
-semPaths(DGS_2M_fit,
-         whatLabels = "std",
-         what = "std",
-         layout = "tree2",
-         edge.label.cex = 1)
-
-model_parameters(DGS_2M_fit, standardize = TRUE)
-```
-
-##trimming based on IRT and EFA
+##trimming based on IRT
 
 ```{r IRT_trim}
 #6 factors model without behavioral items
 DGS_6model_1 <- DGS %>%
-  select(c(DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_56,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_75))
+  select(c(DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_37,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_74))
 DGS_6model_2 <- DGS %>%
   select(c(DGS_5,DGS_10,DGS_26,DGS_41,DGS_54,DGS_69,DGS_72))
 DGS_6model_3 <- DGS %>%
@@ -1503,46 +1449,38 @@ DGS_6model_4 <- DGS %>%
 DGS_6model_5 <- DGS %>%
   select(c(DGS_21,DGS_44,DGS_65))
 DGS_6model_6 <- DGS %>%
-  select(c(DGS_6,DGS_38,DGS_39,DGS_70,DGS_71))
-
-#2 factors 
-DGS_2model_2 <- DGS%>%
-  select(c(DGS_28,DGS_35,DGS_48,DGS_68,DGS_6,DGS_38,DGS_39,DGS_70,DGS_71))
-
-DGS_2model_1 <- DGS%>%
-  select(c(DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_56,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_75,
-           DGS_5,DGS_10,DGS_26,DGS_41,DGS_54,DGS_69,DGS_72,
-           DGS_9,DGS_27,DGS_29,DGS_46,DGS_52,
-           DGS_21,DGS_44,DGS_65))
-
+  select(c(DGS_6,DGS_38,DGS_39,DGS_67,DGS_70,DGS_71))
 ```
 
-```{r IRT2}
-DGS_IRT2_2 = mirt(data = DGS_2model_2,
-      model = 1, #this is for one factor
-      itemtype = "gpcmIRT" #generalized partial credit model
-)
+##check factor structure after trimming
+```{r 6factors_trimmed}
+# try to trim out behavioral items and create 6 factors
+DGS_fit_6C <- DGS %>%
+  select(c(
+    DGS_12,DGS_15,DGS_17,DGS_18,DGS_19,DGS_30,DGS_32,DGS_33,DGS_34,DGS_36,DGS_37,DGS_49,DGS_57,DGS_58,DGS_60,DGS_61,DGS_63,DGS_74,DGS_75,
+    DGS_5,DGS_10,DGS_26,DGS_41,DGS_54,DGS_69,DGS_72,
+    DGS_9,DGS_27,DGS_29,DGS_46,DGS_52,
+    DGS_28,DGS_35,DGS_48,DGS_68,
+    DGS_21,DGS_44,DGS_65,
+    DGS_6,DGS_38,DGS_39,DGS_67,DGS_70,DGS_71
+  ))
 
-plot(DGS_IRT2_2, 
-     type = "info",
-     main = "item information for Effective Altruism items",
-      lwd = 5)
+EFA_fit_6C <- fa(DGS_fit_6C,
+             nfactors = 6,
+             rotate = "oblimin",
+             fm="ml")
+EFA_fit_6C
+print(EFA_fit_6C$loadings, cutoff = 0.3)
+print(EFA_fit_6C$loadings)
 
-DGS_IRT2_1 = mirt(data = DGS_2model_1,
-      model = 1, #this is for one factor
-      itemtype = "gpcmIRT" #generalized partial credit model
-)
-
-plot(DGS_IRT2_1, 
-     type = "info", 
-     main = "item information for Humanitarianism items",
-     lwd = 5)
-
-DGS_IRT2_1
+#fit
+EFA_fit_6C$rms  # Root mean square of the residuals (lower the better)
+EFA_fit_6C$RMSEA # root mean squared error of approximation (lower the better)
+EFA_fit_6C$TLI  # tucker lewis index
+1- ((EFA_fit_6C$STATISTIC-EFA_fit_6C$dof)/
+      (EFA_fit_6C$null.chisq-EFA_fit_6C$null.dof))  #CFI
 
 ```
-
-
 ###likert visualization
 
 ```{r likert}
@@ -1566,6 +1504,13 @@ visu_likert(DGS_6model_6)
 
 
 ```{r basic_score}
+data$DGS_7C_1 <- rowSums(DGS_7model_1)/ncol(DGS_7model_1)
+data$DGS_7C_2 <- rowSums(DGS_7model_2)/ncol(DGS_7model_2)
+data$DGS_7C_3 <- rowSums(DGS_7model_3)/ncol(DGS_7model_3)
+data$DGS_7C_4 <- rowSums(DGS_7model_4)/ncol(DGS_7model_4)
+data$DGS_7C_5 <- rowSums(DGS_7model_5)/ncol(DGS_7model_5)
+data$DGS_7C_6 <- rowSums(DGS_7model_6)/ncol(DGS_7model_6)
+data$DGS_7C_7 <- rowSums(DGS_7model_7)/ncol(DGS_7model_7)
 
 data$DGS_6C_1 <- rowSums(DGS_6model_1)/ncol(DGS_6model_1)
 data$DGS_6C_2 <- rowSums(DGS_6model_2)/ncol(DGS_6model_2)
@@ -1592,18 +1537,38 @@ data$DGS_vol <- data %>%
 ```
 
 ```{r IRT_score}
-## Need edits
+
 data$DGS_7C_1_fscore <- fscores(DGS_IRT_1)
 data$DGS_7C_2_fscore <- fscores(DGS_IRT_2)
 data$DGS_7C_3_fscore <- fscores(DGS_IRT_3)
 data$DGS_7C_4_fscore <- fscores(DGS_IRT_4)
 data$DGS_7C_5_fscore <- fscores(DGS_IRT_5)
 data$DGS_7C_6_fscore <- fscores(DGS_IRT_6)
+data$DGS_7C_7_fscore <- fscores(DGS_IRT_7)
 ```
 ###inferential analysis
 
 ```{r analysis}
 psych::omega(HEXACO_C, nfactors = 4) # alpha = 0.82
+
+DGS_HEXACO <- data %>%
+  select(c(HEXACO_C,starts_with("DGS_7C_")))
+
+cor.plot(DGS_HEXACO)
+
+##regression to use non-behavioral to predict behaviors
+data$DGS_beh <- rowSums(DGS_beh)/ncol(DGS_beh)
+
+DGS_beh <- data %>%
+  select(c(DGS_beh,
+           DGS_7C_1,
+           DGS_7C_2,
+           DGS_7C_3,
+           DGS_7C_4,
+           DGS_7C_5,
+           DGS_7C_6))
+
+cor.plot(DGS_beh)
 
 
 ##with factor scores
@@ -1612,18 +1577,7 @@ DGSf_HEXACO <- data %>%
 data$DGS_donation <- apply(data$DGS_donation, 2, as.numeric)
 data$DGS_vol <- apply(data$DGS_vol, 2, as.numeric)
 
-cor.plot(DGSf_HEXACO,
-         main = "correlation table with 6 factors and outcome variables")
-
-
-corrplot(cor(DGSf_HEXACO), method = "number", type = "lower", 
-         col = colorRampPalette(c("#000000", "#9E7E38"))(100),
-         tl.col = "#9E7E38",
-         tl.cex = 1,
-         number.cex = 1.5,
-         cl.cex = 1,
-         number.font = 2,
-         sig.level = 0.05)
+cor.plot(DGSf_HEXACO)
 
 
 m_DGS_beh <- lm (
@@ -1637,7 +1591,6 @@ m_DGS_beh <- lm (
   data= data
 )
 summary(m_DGS_beh)
-tab_model(m_DGS_beh)
 
 m_DGS_beh <- lm (
   DGS_vol ~ 
@@ -1650,5 +1603,4 @@ m_DGS_beh <- lm (
   data= data
 )
 summary(m_DGS_beh)
-tab_model(m_DGS_beh)
 ```
